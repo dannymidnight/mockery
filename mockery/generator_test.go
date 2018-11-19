@@ -20,7 +20,7 @@ type GeneratorSuite struct {
 }
 
 func (s *GeneratorSuite) SetupTest() {
-	s.parser = NewParser(nil)
+	s.parser = NewParser()
 }
 
 func (s *GeneratorSuite) getInterfaceFromFile(interfacePath, interfaceName string) *Interface {
@@ -36,15 +36,16 @@ func (s *GeneratorSuite) getInterfaceFromFile(interfacePath, interfaceName strin
 	)
 
 	iface, err := s.parser.Find(interfaceName)
-	s.Require().NoError(err)
-	s.Require().NotNil(iface)
+	s.NoError(err, "The requested interface was found.")
 	return iface
 }
 
 func (s *GeneratorSuite) getGenerator(
 	filepath, interfaceName string, inPackage bool,
 ) *Generator {
-	return NewGenerator(s.getInterfaceFromFile(filepath, interfaceName), pkg, inPackage)
+	return NewGenerator(
+		s.getInterfaceFromFile(filepath, interfaceName), pkg, inPackage,
+	)
 }
 
 func (s *GeneratorSuite) checkGeneration(
@@ -82,6 +83,14 @@ func (s *GeneratorSuite) checkPrologueGeneration(
 		expected, generator.buf.String(),
 		"The generator produced the expected prologue.",
 	)
+}
+
+func (s *GeneratorSuite) getInterfaceRelPath(iface *Interface) string {
+	local, err := filepath.Rel(getGoPathSrc(), filepath.Dir(iface.Path))
+	s.NoError(err, "No errors with relative path generation.")
+
+	// Align w/ Generator.getLocalizedPath and enforce '/' slashes for import paths in every OS.
+	return filepath.ToSlash(local)
 }
 
 func (s *GeneratorSuite) TestCalculateImport() {
@@ -1005,13 +1014,15 @@ func (s *GeneratorSuite) TestPrologueWithImportSameAsLocalPackage() {
 	generator := s.getGenerator(
 		"imports_same_as_package.go", "ImportsSameAsPackage", false,
 	)
+	s.getInterfaceRelPath(generator.iface)
 	expected := `package mocks
 
-import fixtures "` + generator.iface.Path + `"
+import fixtures "` + s.getInterfaceRelPath(generator.iface) + `"
 import mock "github.com/stretchr/testify/mock"
 import test "github.com/vektra/mockery/mockery/fixtures/test"
 
 `
+
 	s.checkPrologueGeneration(generator, expected)
 }
 

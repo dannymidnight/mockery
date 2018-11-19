@@ -23,7 +23,8 @@ type WalkerVisitor interface {
 }
 
 func (this *Walker) Walk(visitor WalkerVisitor) (generated bool) {
-	parser := NewParser(this.BuildTags)
+	parser := NewParser()
+	parser.AddBuildTags(this.BuildTags...)
 	this.doWalk(parser, this.BaseDir, visitor)
 
 	err := parser.Load()

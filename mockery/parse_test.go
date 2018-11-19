@@ -15,7 +15,7 @@ func init() {
 }
 
 func TestFileParse(t *testing.T) {
-	parser := NewParser(nil)
+	parser := NewParser()
 
 	err := parser.Parse(testFile)
 	assert.NoError(t, err)
@@ -29,7 +29,7 @@ func TestFileParse(t *testing.T) {
 }
 
 func noTestFileInterfaces(t *testing.T) {
-	parser := NewParser(nil)
+	parser := NewParser()
 
 	err := parser.Parse(testFile)
 	assert.NoError(t, err)
@@ -43,7 +43,7 @@ func noTestFileInterfaces(t *testing.T) {
 }
 
 func TestBuildTagInFilename(t *testing.T) {
-	parser := NewParser(nil)
+	parser := NewParser()
 
 	// Include the major OS values found on https://golang.org/dl/ so we're likely to match
 	// anywhere the test is executed.
@@ -65,7 +65,7 @@ func TestBuildTagInFilename(t *testing.T) {
 }
 
 func TestBuildTagInComment(t *testing.T) {
-	parser := NewParser(nil)
+	parser := NewParser()
 
 	// Include the major OS values found on https://golang.org/dl/ so we're likely to match
 	// anywhere the test is executed.
@@ -87,7 +87,8 @@ func TestBuildTagInComment(t *testing.T) {
 }
 
 func TestCustomBuildTag(t *testing.T) {
-	parser := NewParser([]string{"custom"})
+	parser := NewParser()
+	parser.AddBuildTags("custom")
 
 	// Include two files that define the same interface, but with different
 	// build tags. Only one should be loaded.
@@ -99,12 +100,7 @@ func TestCustomBuildTag(t *testing.T) {
 	err = parser.Load()
 	assert.NoError(t, err) // Expect "redeclared in this block" if tags aren't respected
 
-	found := false
-	for _, node := range parser.Interfaces() {
-		if node.Name == "IfaceWithCustomBuildTagInComment" {
-			found = true
-			break
-		}
-	}
-	assert.True(t, found, "IfaceWithCustomBuildTagInComment not parsed")
+	nodes := parser.Interfaces()
+	assert.Equal(t, 1, len(nodes))
+	assert.Equal(t, "IfaceWithCustomBuildTagInComment", nodes[0].Name)
 }
